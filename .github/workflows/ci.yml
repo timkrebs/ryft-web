@@ -132,6 +132,8 @@ jobs:
         with:
           name: lighthouse
           path: .lighthouseci
+          # A dot directory: upload-artifact skips hidden files unless told otherwise.
+          include-hidden-files: true
           retention-days: 14
       - if: always()
         run: docker logs web | tail -50
@@ -214,5 +216,49 @@ jobs:
             echo "$TAGS"
             echo "digest: $DIGEST"
             echo '```'
-            echo "Pin it in plattform/deploy/k8s/overlays/eks/kustomization.yaml (docs/HANDOFF.md)."
+            echo "Pinned in plattform/deploy/k8s/overlays/eks/kustomization.yaml by the promote job, or by hand (docs/HANDOFF.md)."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # After the image of a push to main: pin web in ryft-platform's EKS overlay on a branch
+  # deploy/web-<sha> and open "deploy: web <sha>", which merges itself once the platform's
+  # checks pass; Argo CD deploys the merge, a revert rolls back (docs/HANDOFF.md → 2,
+  # item 6). The token is the ryft-deploy App's, for ryft-platform only (variable
+  # RYFT_DEPLOY_APP_CLIENT_ID, secret RYFT_DEPLOY_APP_KEY): skipped until both are set.
+  promote:
+    name: Promote
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.RYFT_DEPLOY_APP_CLIENT_ID != ''
+    needs: [image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: promote
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commits since the running pin go into the PR.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RYFT_DEPLOY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RYFT_DEPLOY_APP_KEY }}
+          owner: timkrebs
+          repositories: ryft-platform
+          permission-contents: write
+          permission-pull-requests: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: timkrebs/ryft-platform
+          path: plattform
+          token: ${{ steps.app.outputs.token }}
+      - name: Pin web in a ryft-platform PR
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          SLUG: ${{ steps.app.outputs.app-slug }}
+          PLATFORM: plattform
+        run: node scripts/promote.mjs
