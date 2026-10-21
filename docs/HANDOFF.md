@@ -57,12 +57,16 @@ gh repo edit timkrebs/ryft-web --enable-squash-merge --disable-merge-commit --di
 ### Repository variables (public values, baked into the HTML)
 
 ```bash
-gh variable set SUPPORT_EMAIL  --repo timkrebs/ryft-web --body "<address>"
-gh variable set TESTFLIGHT_URL --repo timkrebs/ryft-web --body "https://testflight.apple.com/join/<code>"
+gh variable set SUPPORT_EMAIL --repo timkrebs/ryft-web --body "<an address that isn't personal>"
 ```
 
-While unset, the TestFlight buttons are hidden and the contact spots show a `TODO(user)`
+`SUPPORT_EMAIL` is printed on the support and beta pages, so it must not be a private
+address (`docs/LEGAL_CHECKLIST.md` → 0). While it is unset, those spots show a `TODO(user)`
 marker. A change takes effect with the next image (the next green `main`).
+
+`TESTFLIGHT_URL` stays unset: the beta is invite-only, with no public link (2026-10-21). The
+"Open in TestFlight" buttons stay hidden; people ask for an invite through the beta page's
+mail link.
 
 ### The image: private, readable by the platform
 

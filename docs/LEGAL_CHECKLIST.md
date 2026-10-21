@@ -16,12 +16,47 @@ noted. 45 `TODO(user)` in all: privacy 11 + 11, terms 5 + 5, support 2 + 2, Impr
 
 ---
 
+## 0. Your personal details stay off the internet (decided 2026-10-21)
+
+You don't want your name, home address, personal email or phone publicly available. So
+**none of them goes into the texts, this repository, its variables or commits**, and the
+markers that ask for them stay open: U1, U5, U6, U7, U12 below, and the Impressum.
+
+They conflict with what the drafts are built to say. The privacy policy names the
+controller's identity and contact (Art. 13(1)(a) GDPR); the German Impressum asks for a name
+and an address that can be served (§ 5 DDG); terms §1 names the provider. Whether and how
+those apply to a free, invite-only beta, and what satisfies them, is for your legal
+reviewer. The usual ways to meet them without your private details, for that review:
+
+| Spot | Instead of your private details |
+| --- | --- |
+| Every published email (support, privacy, Impressum, `SUPPORT_EMAIL`) | An address on `ryftapp.de` (e.g. `support@`, `privacy@`) that forwards to your inbox. This needs mail for the domain (MX records in Route 53 and a forwarding or mail service). That service then receives users' emails, so it goes into privacy §5 like the others. |
+| Postal address (Impressum, privacy §1, terms §1) | A business or service address that accepts legal mail for you. Whether a given one counts as *ladungsfähig* is the reviewer's call. |
+| Name | A company (e.g. a UG) as provider and controller, with its own registered address. A bigger step. |
+| Phone (Impressum's "second fast way") | Whatever the reviewer accepts in its place. The site has no forms by design. |
+
+Facts that bear on it:
+
+- **Already public:** your full name, as the author of every commit in the public
+  `ryft-app` and `ryft-platform` repositories and as your GitHub profile name. Your GitHub
+  account name is in the app's bundle ID `dev.timkrebs.ryft`, so in the AASA on `ryftapp.de`
+  today (the platform's ConfigMap serves it), in the image names and in both public
+  repositories. A bundle ID can't change for a published app. TestFlight also shows testers
+  the developer name of your Apple account. What can still stay private: the address, the
+  personal email, the phone.
+- **Git keeps what is committed.** An address pushed once stays in the history, even after
+  it is edited out, so it goes in only once you have decided.
+- **App Store, later:** Apple asks EU sellers to declare whether they are a trader under the
+  Digital Services Act; for traders, the App Store page shows an address, phone and email.
+  TestFlight doesn't ask.
+- Until then the pages stay drafts (banner, `noindex`).
+
 ## 1. Only you can answer
 
 | # | Where | What is needed |
 | --- | --- | --- |
 | U1 | privacy §1 (l. 13); terms §1 (l. 12); Impressum "Provider"/"Angaben gemäß § 5 DDG" (en l. 14, de l. 12) | Controller and provider: full name (or company), postal address that can be served (*ladungsfähige Anschrift*), email address. The same person in all three. |
-| U2 | privacy §1 (l. 13) | Data protection officer: name and contact, or that none is designated. Whether one is required is governed by Art. 37 GDPR and § 38 BDSG: your and your reviewer's call. |
+| U2 | privacy §1 (l. 13) | **Answered (2026-10-21): none.** The text will say none is designated. Whether one is required (Art. 37 GDPR, § 38 BDSG) is your reviewer's to confirm. |
 | U3 | privacy §4 (l. 38) | The legal review of the bases listed in §4. The draft names them as the system works; it does not settle them. |
 | U4 | privacy §7 (l. 59) | The competent supervisory authority (it follows from where the controller is established, usually your federal state's data protection authority). |
 | U5 | privacy §7 (l. 59) | The email address for privacy requests. |
@@ -31,7 +66,7 @@ noted. 45 `TODO(user)` in all: privacy 11 + 11, terms 5 + 5, support 2 + 2, Impr
 | U9 | terms §8 (l. 40) | How the beta ends, and how long before that testers are told. |
 | U10 | terms §9 (l. 44) | The liability clause, reviewed for German law. The draft's note stays true: liability for intent, gross negligence and injury to life, body or health cannot be excluded. |
 | U11 | terms §10 (l. 48) | Governing law and place of jurisdiction. |
-| U12 | support (l. 10, first marker) | The support address. It should be the same value as the repository variable `SUPPORT_EMAIL` (`docs/HANDOFF.md` → 1), which the support and beta pages use. |
+| U12 | support (l. 10, first marker) | The support address: one that isn't personal (section 0). The same value goes into the repository variable `SUPPORT_EMAIL` (`docs/HANDOFF.md` → 1), which the support page and the beta page's "Ask for an invite" use. The beta is invite-only, with no public TestFlight link (2026-10-21), so that mail link is how people ask. |
 
 ## 2. Facts about the system, and the decisions they need
 
