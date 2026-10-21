@@ -1,8 +1,24 @@
 # Status — ryftapp.de (web/)
 
-As of 2026-10-21. `main` at `github.com/timkrebs/ryft-web` (private); the first image is
-`ghcr.io/timkrebs/ryft/web:abfbe26`. Not live yet: `ryftapp.de` still serves the platform's
-ConfigMap site until the platform switches (HANDOFF.md → 2).
+As of 2026-10-21. **Live on `https://ryftapp.de` since 2026-10-21, 20:32 CEST**: the
+platform's `2cc55ef` (ryft-platform #3) runs `ghcr.io/timkrebs/ryft/web:f437747` (public,
+D14) instead of the ConfigMap site. `main` at `github.com/timkrebs/ryft-web` (public).
+
+## Live, and how it was checked (2026-10-21, against production)
+
+| Check | Result |
+| --- | --- |
+| Routes | 200 `text/html` on `/`, `/de`, `/science`, `/beta`, `/privacy`, `/terms`, `/support`, `/impressum`, `/de/privacy`, `/de/impressum`, `/privacy/2026-10-20`, `/terms/2026-10-20`, `/licenses`, `/day/…`, `/auth/callback`, `/invite/…`, `/train/history` |
+| AASA | 200 `application/json`, no redirect; `/day/*` … `/invite/*`, `/auth/*` |
+| Redirects | `www.ryftapp.de/` → 308 `https://ryftapp.de/`; `/privacy/` → 301 `/privacy` |
+| Headers | This image's CSP (two script hashes, Trusted Types), HSTS, `no-referrer`, `nosniff` |
+| Legal pages | Drafts: banner and `noindex`, as intended until you publish |
+| Lighthouse (mobile, 3 runs per page) | Every assertion of `lighthouserc.json` passed. Performance, accessibility, best practices 100 on `/`, `/de`, `/science`, `/beta`, `/privacy`; LCP 0.77–0.90 s; CLS ≤ 0.002; TBT 0; SEO 92 (`/privacy` 58: `noindex`) |
+| Links | 249 (89 on ryftapp.de, 160 external), all OK (`linkinator` from production) |
+| Image | Anonymous pulls of `f437747` and `abfbe26` answer 200 |
+
+Not checked from here: the pods and the access log in the cluster (this shell's AWS session
+had expired).
 
 ## Done, and how it was checked
 
@@ -45,8 +61,7 @@ the package is not public.
 - **Done on 2026-10-21:** the repository is public and `main` is protected (ruleset: PRs,
   squash only, the four checks required); `SUPPORT_EMAIL` = `support@ryftapp.de`;
   `TESTFLIGHT_URL` stays unset (invite-only beta). HANDOFF.md → 1.
-- **Merged:** #9 (an access log that identifies no visitor), as `f437747`; its image is
-  pushed.
+- **Merged:** #9 (an access log that identifies no visitor), as `f437747`; live.
 - **In review:** #8 (these docs), #10 (your
   legal answers, both languages, still drafts), #11 (the promote job; Lighthouse reports
   uploaded). The ruleset wants each one up to date with `main` before it merges.
@@ -54,10 +69,8 @@ the package is not public.
   by your choice (HANDOFF.md → 1).
 - **Grafana Cloud**: exclude `ryft-.*` from pod-log collection (HANDOFF.md → 1); the privacy
   text says metrics only.
-- **The package**: you make it public (HANDOFF.md → 1; D14 records the font-licence risk).
-- **Platform switch to the image**: the quick switch in HANDOFF.md → 2 (no pull secret),
-  pinning `f437747`; `docs/handoff/platform-web-image-public.patch`, checked against the
-  platform at `003a1a9`.
+- **Web releases**: a one-line pin PR in ryft-platform (web's `newTag`) until the promote job
+  (#11) has the App (HANDOFF.md → 1).
 - **Legal texts**: drafts until every `TODO(user)` is resolved and you say "publish";
   `docs/LEGAL_CHECKLIST.md` → 0a lists what is answered and what is open. Your name and
   address stay off the site until there is a non-personal option (→ 0).
