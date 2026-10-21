@@ -3,8 +3,8 @@
 **Not legal advice.** This list says where each open point is, what it needs, and, where the
 answer is a fact about the RYFT system, that fact and where it was checked. Legal conclusions
 (bases, whether a DPO is required, which authority, liability, law) are yours and your
-reviewer's. Nothing here has been written into the texts yet: the drafts change only with
-your answers, in both languages at once.
+reviewer's. The drafts change only with your answers, in both languages at once: those of
+2026-10-21 are in ryft-web PR #10 (section 0a); everything else is open.
 
 As of 2026-10-21; checked against `ryft-platform` `003a1a9`, `ryft-app` `1eb5192` and the
 web image built from this repository.
@@ -50,6 +50,29 @@ Facts that bear on it:
   Digital Services Act; for traders, the App Store page shows an address, phone and email.
   TestFlight doesn't ask.
 - Until then the pages stay drafts (banner, `noindex`).
+
+## 0a. Answered on 2026-10-21
+
+| Point | Your answer | Where it goes |
+| --- | --- | --- |
+| Contact email (U1's email, U5, U6's email, U12) | `support@ryftapp.de`, forwarding to your inbox | PR #10; `SUPPORT_EMAIL` is set. The mail service is still to choose and set up (`docs/HANDOFF.md` → 1); the text names it in a new marker |
+| U2 | No data protection officer | PR #10 |
+| S1 | Supabase in Frankfurt, its DPA accepted | PR #10; the basis for access from outside the EU stays open |
+| S3 | AWS's DPA accepted | PR #10 |
+| S4 | RYFT's logs excluded from Grafana Cloud | PR #10 (metrics only). True once you have excluded `ryft-.*` in Fleet Management (`docs/HANDOFF.md` → 1) |
+| S5 | Supabase Pro, point-in-time recovery off | PR #10 (backups 7 days; dead letters corrected to 14 days) |
+| S6 | Access log without IP, user agent, referrer and query string | PR #9 (nginx), PR #10 (the text, plus a marker for its basis) |
+| S7 | The Apple Health opt-in sentence now | PR #10 |
+| S8 | Minimum age 13 | PR #10 (privacy §9, terms §4) |
+| — | The beta is invite-only, no public TestFlight link | `TESTFLIGHT_URL` stays unset |
+
+**Still open:** the name and postal address (U1, the Impressum, terms §1; section 0), the
+supervisory authority (U4), the review of the legal bases (U3, now also the website's), the
+basis for Supabase access from outside the EU, the mail service (name, where, DPA), the
+Impressum's § 18(2) MStV person, phone replacement, VAT ID and VSBG statement (U6–U8),
+terms §8–§10 (U9–U11), the feedback route on the support page (S9), whether the old Ireland
+project is deleted (S1), an SMTP provider for Supabase's emails (S2), whether sent `outbox`
+rows are deleted (S5), and the privacy version (section 4).
 
 ## 1. Only you can answer
 
@@ -196,10 +219,9 @@ Needs you, one of: a sentence now, worded as opt-in (the app session confirms th
   child's own consent to such services unless a member state lowers it; the draft's marker
   says Germany's is 16.
 
-**Recommendation: 16 in both texts.** The requests are filed: `docs/HANDOFF.md` → 2 item 4
-(the platform's `birth_year` validation) and → 3 (the app's picker; whether Create account
-asks "I am 16 or older" is your call). Needs you: the age, and whether the texts may say 16
-before both releases are out.
+**Decided (2026-10-21): 13**, as the app and the platform accept today, in privacy §9 and
+terms §4 (PR #10). The Art. 8 point above stays with your reviewer. No change is requested
+from the app or the platform.
 
 ### S9 — Support page (support l. 10, second marker; l. 26)
 

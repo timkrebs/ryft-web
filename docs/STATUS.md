@@ -42,25 +42,26 @@ the package is not public.
 
 ## Open
 
-- **Branch protection**: GitHub refuses rulesets on a private repository without Pro (403);
-  `main` is unprotected until you choose (HANDOFF.md → 1).
+- **Done on 2026-10-21:** the repository is public and `main` is protected (ruleset: PRs,
+  squash only, the four checks required); `SUPPORT_EMAIL` = `support@ryftapp.de`;
+  `TESTFLIGHT_URL` stays unset (invite-only beta). HANDOFF.md → 1.
+- **In review:** #8 (these docs), #9 (an access log that identifies no visitor), #10 (your
+  legal answers, both languages, still drafts), #11 (the promote job; Lighthouse reports
+  uploaded). The ruleset wants each one up to date with `main` before it merges.
+- **Mail for ryftapp.de**: no MX record yet; a mail service, then the DNS records from the
+  platform, before the platform switch (HANDOFF.md → 1, → 2 item 7).
+- **Grafana Cloud**: exclude `ryft-.*` from pod-log collection (HANDOFF.md → 1); the privacy
+  text says metrics only.
 - **The package**: confirm it is private, give `ryft-platform` Read access, create the
   cluster's pull token (HANDOFF.md → 1).
 - **Platform switch to the image**: HANDOFF.md → 2; the change is
   `docs/handoff/platform-web-image.patch`, checked against the platform at `003a1a9`.
-- **Legal texts**: drafts until every `TODO(user)` is answered and you say "publish";
-  `docs/LEGAL_CHECKLIST.md` lists them, with corrections the facts need (dead letters 14
-  days, not 30; the website's access log; Apple Health writing; the age).
-- **The website's access log** carries visitors' IP addresses, user agents and query strings
-  to CloudWatch for 14 days (LEGAL_CHECKLIST.md → S6): your decision.
-- **Lighthouse reports are not uploaded**: `actions/upload-artifact` skips the hidden
-  `.lighthouseci` directory unless `include-hidden-files: true` is set. The assertions run
-  and gate either way.
+- **Legal texts**: drafts until every `TODO(user)` is resolved and you say "publish";
+  `docs/LEGAL_CHECKLIST.md` → 0a lists what is answered and what is open. Your name and
+  address stay off the site until there is a non-personal option (→ 0).
 - **Local `main` was rewritten after the push** (`git filter-branch` removed the commits'
   `Co-Authored-By` lines; the trees are identical). `origin/main` is the history; a local
   `main` built on the rewrite shares no commit with it.
-- **Support address and TestFlight link**: repository variables; until then the pages show
-  `TODO(user)` where the address goes and hide the TestFlight button.
 - **Captures from the app** (HANDOFF.md → 3): a clean Today screen, the journal and
   Profile → Data. Until then the hero draws Today in SVG and the journal shows a sample
   card, both labelled "Sample data".

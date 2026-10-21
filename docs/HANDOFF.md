@@ -12,78 +12,55 @@ As of 2026-10-21.
 
 ## 1. For you
 
-### Branch protection (blocked by the plan)
+### Done on 2026-10-21
 
-`timkrebs/ryft-web` is private, and GitHub answers the ruleset API with 403 "Upgrade to
-GitHub Pro or make this repository public" (2026-10-21); classic branch protection has the
-same limit. So `main` is not protected today: the sessions still work through PRs, but
-nothing enforces it. Your choice:
+- **The repository is public** (your choice). Before that: no personal details in the
+  tree, history or PRs; gitleaks clean; the fonts are never committed.
+- **`main` is protected:** ruleset `main` (id 25564428): PRs only, squash only, linear
+  history, no force push or deletion, the four checks required and up to date, nobody
+  bypasses it. Merge commits and rebase merges are off; branches go on merge.
+- **`SUPPORT_EMAIL` = `support@ryftapp.de`**, from the next image on (support page, the beta
+  page's "Ask for an invite"). `TESTFLIGHT_URL` stays unset: the beta is invite-only, so the
+  "Open in TestFlight" buttons stay hidden.
+- **The image** `ghcr.io/timkrebs/ryft/web:abfbe26` (the first green `main`) is not public:
+  ghcr.io refuses an anonymous pull token (401), also after the repository went public.
 
-| Option | Cost |
-| --- | --- |
-| GitHub Pro | Paid. Then run the ruleset below. |
-| Make the repository public | Nothing secret is in it (gitleaks clean, the fonts are fetched at build time and never committed). The legal drafts and this handoff become public. Then run the ruleset below. |
-| Leave it | `main` unprotected; a direct push is possible. |
+### Mail for ryftapp.de (before the platform switch)
 
-```bash
-gh api -X POST repos/timkrebs/ryft-web/rulesets --input - <<'JSON'
-{
-  "name": "main",
-  "target": "branch",
-  "enforcement": "active",
-  "conditions": { "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] } },
-  "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
-    { "type": "required_linear_history" },
-    { "type": "pull_request", "parameters": {
-        "required_approving_review_count": 0, "dismiss_stale_reviews_on_push": true,
-        "require_code_owner_review": false, "require_last_push_approval": false,
-        "required_review_thread_resolution": false, "allowed_merge_methods": ["squash"] } },
-    { "type": "required_status_checks", "parameters": {
-        "strict_required_status_checks_policy": true,
-        "required_status_checks": [
-          { "context": "Checks" },
-          { "context": "E2E, accessibility, links, Lighthouse" },
-          { "context": "Secrets (gitleaks)" },
-          { "context": "PR title" } ] } }
-  ],
-  "bypass_actors": []
-}
-JSON
-gh repo edit timkrebs/ryft-web --enable-squash-merge --disable-merge-commit --disable-rebase-merge --delete-branch-on-merge
-```
+`ryftapp.de` has no MX record today, so `support@ryftapp.de` receives nothing yet. The new
+image prints that address, so mail has to work before the platform switches to it.
 
-### Repository variables (public values, baked into the HTML)
+1. **A mail service** for the domain. It should receive mail for `support@ryftapp.de`,
+   forward it to your private inbox, and let you **reply as** `support@ryftapp.de`: replies
+   from your private address would show it to everyone who writes. It needs a data
+   processing agreement, and ideally servers in the EU. It is named in privacy §5 (the
+   marker is in ryft-web PR #10).
+2. **The forwarding target** goes only into that service's settings, never into DNS text
+   records, a repository or a variable. Avoid services that keep the target in a public
+   TXT record.
+3. **DNS:** give the platform session the records the service asks for (MX, SPF, DKIM,
+   DMARC, a verification TXT). `ryftapp.de` is a Route 53 zone in `plattform/infra/aws/dns`
+   (section 2, item 7).
 
-```bash
-gh variable set SUPPORT_EMAIL --repo timkrebs/ryft-web --body "<an address that isn't personal>"
-```
+### Grafana Cloud: exclude RYFT's logs (your choice)
 
-`SUPPORT_EMAIL` is printed on the support and beta pages, so it must not be a private
-address (`docs/LEGAL_CHECKLIST.md` → 0). While it is unset, those spots show a `TODO(user)`
-marker. A change takes effect with the next image (the next green `main`).
+Grafana Cloud → Fleet Management → the pod-log pipeline: exclude namespaces matching
+`ryft-.*`. Then Explore → `{namespace=~"ryft-.*"}` over the last hour must return nothing.
+The privacy text now says Grafana receives service metrics only (PR #10), which is true only
+from then on.
 
-`TESTFLIGHT_URL` stays unset: the beta is invite-only, with no public link (2026-10-21). The
-"Open in TestFlight" buttons stay hidden; people ask for an invite through the beta page's
-mail link.
+### The image: readable by the platform, and the cluster's pull token
 
-### The image: private, readable by the platform
-
-Every green `main` pushes `ghcr.io/timkrebs/ryft/web:<short-sha>` (and `:latest`); the first
-was `abfbe26` on 2026-10-21. It contains the three Satoshi WOFF2 files, which the ITF Free
-Font License lets us self-host but not offer for download, so the package stays **private**.
-ghcr.io refuses an anonymous pull token for it (401), so it is not public now.
-
-1. **Check its visibility** (your `gh` token needs `read:packages` for this):
+1. **Confirm it is private** (your `gh` token needs `read:packages`):
 
    ```bash
    gh auth refresh -h github.com -s read:packages
    gh api /users/timkrebs/packages/container/ryft%2Fweb --jq .visibility    # private
    ```
 
-   If it says `public`: github.com → your profile → Packages → `ryft/web` → Package settings →
-   Danger Zone → Change visibility → Private.
+   It contains the three Satoshi WOFF2 files, which the ITF Free Font License lets us
+   self-host but not offer for download. If it ever says `public`: github.com → your profile
+   → Packages → `ryft/web` → Package settings → Danger Zone → Change visibility → Private.
 2. **Let the platform's CI read it** (it checks that every pinned tag exists): the same
    Package settings page → Manage Actions access → Add repository → `timkrebs/ryft-platform`,
    role **Read**.
@@ -94,11 +71,12 @@ ghcr.io refuses an anonymous pull token for it (401), so it is not public now.
    `plattform/infra/vault/terraform.tfvars` (git-ignored) as `ghcr_pull_token = "ghp_…"`. The
    platform session takes it from there (section 2).
 
-### New web releases reach the cluster: decide
+### New web releases reach the cluster
 
-Recommended: **this repository's CI opens the pin PR in `ryft-platform`**, with the platform's
-GitHub App `ryft-deploy` (it already opens the platform's own "deploy: images" PRs). Section 2
-→ 6 has the reasons and what changes. It needs, once you agree:
+This repository's CI opens the pin PR in `ryft-platform` with the platform's GitHub App
+`ryft-deploy` (your choice; the job is ryft-web PR #11). It stays skipped until you set the
+App here, **after** the platform has switched and changed `scripts/promote.sh` (section 2,
+items 1–6):
 
 ```bash
 gh variable set RYFT_DEPLOY_APP_CLIENT_ID --repo timkrebs/ryft-web --body "Iv23lidXNXq0jv463BaX"   # the same App as in ryft-platform
@@ -109,9 +87,9 @@ Until then a web release is a one-line pin PR in `ryft-platform` (section 2 → 
 
 ### Legal pages
 
-`docs/LEGAL_CHECKLIST.md`: every `TODO(user)`, where it is, what it needs, and the facts about
-the system with their sources. Publishing is section 4 of the go-live brief: your answers in,
-`status: published` and `effective` in both languages, then a PR.
+`docs/LEGAL_CHECKLIST.md`: what is answered, what is still open, and the facts with their
+sources. Your answers of 2026-10-21 are in ryft-web PR #10; the pages stay drafts until every
+`TODO(user)` is resolved and you say "publish".
 
 ### Brand findings in app/ and plattform/
 
@@ -175,8 +153,9 @@ is `plattform/README.md:3`, the platform's front page on GitHub.
 >
 > **2. Order**
 >
-> 1. The user has made the package private, given `ryft-platform` Read access and put
->    `ghcr_pull_token` into `infra/vault/terraform.tfvars` (ryft-web handoff, section 1).
+> 1. The user has confirmed the package is private, given `ryft-platform` Read access and
+>    put `ghcr_pull_token` into `infra/vault/terraform.tfvars` (ryft-web handoff, section 1);
+>    mail for `support@ryftapp.de` works (item 7).
 > 2. Branch, apply the patch, `git rm` as above.
 > 3. `cd infra/vault && terraform test && terraform plan -out=tfplan`. Expect only
 >    additions, all for web: the Vault namespace `ryft/web`, its Kubernetes auth mount,
@@ -213,11 +192,11 @@ is `plattform/README.md:3`, the platform's front page on GitHub.
 > (the short SHA of a green `main` run in ryft-web, quoted). `manifests` checks the tag
 > exists; the merge deploys it. Rollback: revert that commit.
 >
-> **4. The minimum age (from the ryft-web legal review):** consent-based processing of
-> health data needs parental consent under 16 in Germany (Art. 8 GDPR), and the legal texts
-> will say 16. Raise `MinAge` in `backend/internal/scoring/maxhr.go` from 13 to 16, so
-> `PATCH /v1/me` refuses `birth_year` later than this year − 16 (and `API.md` says so). The app
-> raises its picker in the same release (ryft-web handoff, section 3).
+> **4. Logs out of Grafana Cloud (the user's decision, 2026-10-21):** the user excludes
+> `ryft-.*` from pod-log collection in Fleet Management. The privacy text now names Grafana
+> Labs for service metrics only. Update OPERATIONS → "Data protection (logs)" (no longer "the
+> pod logs also reach Grafana Cloud") and STATUS (step 7's "by choice" line); D51's original
+> intent stands. The minimum age stays 13 (`MinAge`); nothing changes there.
 >
 > **5. Docs:** OPERATIONS → "Apex site and apple-app-site-association" now says the site is
 > the `ryft-web` image (legal texts, AASA and nginx config in `timkrebs/ryft-web`,
@@ -229,12 +208,12 @@ is `plattform/README.md:3`, the platform's front page on GitHub.
 > `content/legal/{en,de}/privacy/<version>.mdx` in ryft-web (its CI warns while they differ).
 > ARCHITECTURE line ~300 and STATUS's apex row: the same pointer. A decision: the web image is
 > private and pulled with a Vault-synced secret; `infra/vault` doesn't own `ryft-web`.
-> Nothing changes in `docs/API.md` except the age: `privacy_policy_url` stays
+> Nothing changes in `docs/API.md`: `privacy_policy_url` stays
 > `https://ryftapp.de/privacy`, `privacy_policy_version` stays `2026-10-20` until the user
 > decides on a new version.
 >
-> **6. How new web tags reach the cluster: ryft-web's CI opens the pin PR (recommended).**
-> After its image job has pushed and Trivy has passed, a `promote` job in ryft-web takes a
+> **6. How new web tags reach the cluster: ryft-web's CI opens the pin PR (decided; the job
+> is ryft-web PR #11).** After its image job has pushed and Trivy has passed, a `promote` job in ryft-web takes a
 > token from the `ryft-deploy` App for `ryft-platform` only, sets web's `newTag` on a branch
 > `deploy/web-<sha>`, opens `deploy: web <sha>` with the ryft-web commits since the running
 > pin, closes an older `deploy/web-*` PR, and turns auto-merge on. Your checks run on it
@@ -260,9 +239,16 @@ is `plattform/README.md:3`, the platform's front page on GitHub.
 > +for n in $(gh pr list --state open --json number,headRefName --jq '.[] | select((.headRefName | startswith("deploy/")) and (.headRefName | startswith("deploy/web-") | not)) | .number'); do
 > ```
 >
-> and the user sets the App's client ID and key in ryft-web (its handoff, section 1). The App
-> needs no installation on ryft-web; its token is for `ryft-platform`, where it already has
-> contents and pull-request write.
+> and the user sets the App's client ID and key in ryft-web (its handoff, section 1), after
+> the switch and this line. The App needs no installation on ryft-web; its token is for
+> `ryft-platform`, where it already has contents and pull-request write.
+>
+> **7. Mail for ryftapp.de:** the site publishes `support@ryftapp.de` (support, privacy
+> contact, Impressum), and the zone has no MX record today. Once the user has chosen a mail
+> service, add the records it asks for (MX, SPF, DKIM, DMARC, its verification TXT) to the
+> `ryftapp.de` zone in `infra/aws/dns`. The forwarding target is the user's private address:
+> it must not appear in a DNS record, this repository or a variable. This should be live
+> before the switch, since the new image prints the address.
 >
 > Optional, not needed for the switch:
 >
@@ -295,17 +281,13 @@ is `plattform/README.md:3`, the platform's front page on GitHub.
 >
 > **Requests from the legal review:**
 >
-> - **Minimum age 16.** Consent-based processing of health data needs parental consent under
->   16 in Germany (Art. 8 GDPR), and the privacy policy and terms will say 16. Raise the
->   youngest birth year in About you and Profile → Body to this year − 16
->   (`OnboardingCoordinator.latestBirthYear`, today `− 13`, and the "Choose a year between…"
->   message). The platform raises `birth_year` validation in the same release (its handoff,
->   item 4). Note: birth year is optional, so it is no age check by itself; whether
->   Create account also asks "I am 16 or older" is the user's call.
-> - **Saving workouts to Apple Health** (your beta feedback brief, section 3): when it ships,
->   tell ryft-web the exact wording of the opt-in and what is written (`HKWorkout`
->   `.traditionalStrengthTraining`, start, end, energy if known, no heart rate), so the
->   privacy policy says the same in English and German.
+> - **Minimum age:** the privacy policy and terms say 13, which is what the app accepts
+>   today (`latestBirthYear`, `− 13`). Nothing to change.
+> - **Saving workouts to Apple Health** (your beta feedback brief, section 3): the privacy
+>   policy already says, in English and German: "If you turn on saving workouts, it also
+>   writes your completed strength workouts to Apple Health (the type, start, end and energy,
+>   if known; no heart rate)." If what ships differs (more fields, heart rate, a default other
+>   than off), tell ryft-web before the release.
 > - **"Profile → Report a problem"** is named in `docs/TESTFLIGHT.md:85`, but the app has no
 >   such screen yet (`POST /v1/feedback` is in `APIClient` and `Models.swift`, nothing calls
 >   it). The support page will name whatever exists when it is published: build the screen,
