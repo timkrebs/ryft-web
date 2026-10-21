@@ -45,17 +45,19 @@ the package is not public.
 - **Done on 2026-10-21:** the repository is public and `main` is protected (ruleset: PRs,
   squash only, the four checks required); `SUPPORT_EMAIL` = `support@ryftapp.de`;
   `TESTFLIGHT_URL` stays unset (invite-only beta). HANDOFF.md → 1.
-- **In review:** #8 (these docs), #9 (an access log that identifies no visitor), #10 (your
+- **Merged:** #9 (an access log that identifies no visitor), as `f437747`; its image is
+  pushed.
+- **In review:** #8 (these docs), #10 (your
   legal answers, both languages, still drafts), #11 (the promote job; Lighthouse reports
   uploaded). The ruleset wants each one up to date with `main` before it merges.
-- **Mail for ryftapp.de**: no MX record yet; a mail service, then the DNS records from the
-  platform, before the platform switch (HANDOFF.md → 1, → 2 item 7).
+- **Mail for ryftapp.de**: no MX record yet, so mail to `support@ryftapp.de` bounces; later,
+  by your choice (HANDOFF.md → 1).
 - **Grafana Cloud**: exclude `ryft-.*` from pod-log collection (HANDOFF.md → 1); the privacy
   text says metrics only.
-- **The package**: confirm it is private, give `ryft-platform` Read access, create the
-  cluster's pull token (HANDOFF.md → 1).
-- **Platform switch to the image**: HANDOFF.md → 2; the change is
-  `docs/handoff/platform-web-image.patch`, checked against the platform at `003a1a9`.
+- **The package**: you make it public (HANDOFF.md → 1; D14 records the font-licence risk).
+- **Platform switch to the image**: the quick switch in HANDOFF.md → 2 (no pull secret),
+  pinning `f437747`; `docs/handoff/platform-web-image-public.patch`, checked against the
+  platform at `003a1a9`.
 - **Legal texts**: drafts until every `TODO(user)` is resolved and you say "publish";
   `docs/LEGAL_CHECKLIST.md` → 0a lists what is answered and what is open. Your name and
   address stay off the site until there is a non-personal option (→ 0).

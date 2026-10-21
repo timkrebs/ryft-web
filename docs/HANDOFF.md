@@ -22,13 +22,15 @@ As of 2026-10-21.
 - **`SUPPORT_EMAIL` = `support@ryftapp.de`**, from the next image on (support page, the beta
   page's "Ask for an invite"). `TESTFLIGHT_URL` stays unset: the beta is invite-only, so the
   "Open in TestFlight" buttons stay hidden.
-- **The image** `ghcr.io/timkrebs/ryft/web:abfbe26` (the first green `main`) is not public:
-  ghcr.io refuses an anonymous pull token (401), also after the repository went public.
+- **The images** `ghcr.io/timkrebs/ryft/web:abfbe26` (the first green `main`) and `:f437747`
+  (with the access-log fix, #9) are pushed. The package was still private at 16:30 (ghcr.io
+  refused an anonymous pull token), until you make it public (below).
 
-### Mail for ryftapp.de (before the platform switch)
+### Mail for ryftapp.de (later, by your choice)
 
-`ryftapp.de` has no MX record today, so `support@ryftapp.de` receives nothing yet. The new
-image prints that address, so mail has to work before the platform switches to it.
+`ryftapp.de` has no MX record today, so `support@ryftapp.de` receives nothing yet, and mail
+to it bounces. The image from `f437747` on prints that address (support page, the beta
+page's "Ask for an invite").
 
 1. **A mail service** for the domain. It should receive mail for `support@ryftapp.de`,
    forward it to your private inbox, and let you **reply as** `support@ryftapp.de`: replies
@@ -49,27 +51,18 @@ Grafana Cloud → Fleet Management → the pod-log pipeline: exclude namespaces 
 The privacy text now says Grafana receives service metrics only (PR #10), which is true only
 from then on.
 
-### The image: readable by the platform, and the cluster's pull token
+### Make the image public (your decision, 2026-10-21)
 
-1. **Confirm it is private** (your `gh` token needs `read:packages`):
+github.com → your profile → Packages → `ryft/web` → Package settings
+(`https://github.com/users/timkrebs/packages/container/ryft%2Fweb/settings`) → Danger Zone →
+Change visibility → **Public**. Then the platform needs no pull secret (section 2, the quick
+switch).
 
-   ```bash
-   gh auth refresh -h github.com -s read:packages
-   gh api /users/timkrebs/packages/container/ryft%2Fweb --jq .visibility    # private
-   ```
-
-   It contains the three Satoshi WOFF2 files, which the ITF Free Font License lets us
-   self-host but not offer for download. If it ever says `public`: github.com → your profile
-   → Packages → `ryft/web` → Package settings → Danger Zone → Change visibility → Private.
-2. **Let the platform's CI read it** (it checks that every pinned tag exists): the same
-   Package settings page → Manage Actions access → Add repository → `timkrebs/ryft-platform`,
-   role **Read**.
-3. **A pull token for the cluster:** github.com → Settings → Developer settings → Personal
-   access tokens → **Tokens (classic)** → Generate new token (classic). Note "ryft-web pull
-   (cluster)", an expiry (a year; put the renewal in your calendar), scope **`read:packages`
-   only**. GitHub Packages accepts no fine-grained tokens. Put it into
-   `plattform/infra/vault/terraform.tfvars` (git-ignored) as `ghcr_pull_token = "ghp_…"`. The
-   platform session takes it from there (section 2).
+The image contains the three Satoshi WOFF2 files. The ITF Free Font License allows
+self-hosting them on the site but not making them available "through … publicly accessible
+servers", which a public image does: anyone can pull it and take the files out. You chose
+speed over that; D14 records it. To undo it later: set the package back to private, and the
+platform takes the pull-secret variant (section 2, after the quick switch).
 
 ### New web releases reach the cluster
 
@@ -102,6 +95,136 @@ is `plattform/README.md:3`, the platform's front page on GitHub.
 
 ## 2. Paste into the platform session (plattform/)
 
+> **Switch `ryft-web` to the image built in `timkrebs/ryft-web` (the quick switch, decided
+> 2026-10-21).** The package `ghcr.io/timkrebs/ryft/web` is **public**, like your service
+> images, so there is no pull secret and nothing changes in `infra/vault`, Argo CD's
+> project, the CI or `check_registry.sh`. The image holds the site, its nginx config, the
+> legal texts and the AASA; it serves on 8080 as uid 101 with a read-only root filesystem
+> (writable `/tmp` and `/var/cache/nginx`, as today) and answers `/healthz`. Service,
+> NetworkPolicy, Ingress, the `www` → apex redirect and the rate limit stay exactly as they
+> are.
+>
+> 1. On a branch from `main`, apply this diff (from the `plattform/` root; the same file is
+>    `../web/docs/handoff/platform-web-image-public.patch`, checked with `git apply --check`
+>    against `003a1a9`; the rendered overlay passes `kubeconform -strict`, 54 resources), then
+>    delete what nothing references any more:
+>    `git rm -r deploy/k8s/base/web/site deploy/k8s/base/web/default.conf`.
+>
+> ```diff
+> diff --git a/deploy/k8s/base/web/deployment.yaml b/deploy/k8s/base/web/deployment.yaml
+> index 18d23d2..0a1bb9d 100644
+> --- a/deploy/k8s/base/web/deployment.yaml
+> +++ b/deploy/k8s/base/web/deployment.yaml
+> @@ -24,13 +24,11 @@ spec:
+>            labelSelector: { matchLabels: { app: web } }
+>        containers:
+>          - name: nginx
+> -          image: nginxinc/nginx-unprivileged:1.27-alpine
+> +          # The whole site (pages, nginx config, AASA) is one image, built and pushed by
+> +          # timkrebs/ryft-web on every green main. The tag is pinned in overlays/eks.
+> +          image: ghcr.io/timkrebs/ryft/web
+>            ports: [{ containerPort: 8080, name: http }]
+>            volumeMounts:
+> -            - { name: nginx, mountPath: /etc/nginx/conf.d, readOnly: true }
+> -            - { name: site, mountPath: /usr/share/nginx/html/index.html, subPath: index.html, readOnly: true }
+> -            - { name: site, mountPath: /usr/share/nginx/html/.well-known/apple-app-site-association, subPath: apple-app-site-association, readOnly: true }
+> -            - { name: pages, mountPath: /usr/share/nginx/html/pages, readOnly: true }
+>              - { name: tmp, mountPath: /tmp }
+>              - { name: cache, mountPath: /var/cache/nginx }
+>            readinessProbe:
+> @@ -47,12 +45,6 @@ spec:
+>              requests: { cpu: 10m, memory: 16Mi }
+>              limits: { memory: 64Mi }
+>        volumes:
+> -        - name: nginx
+> -          configMap: { name: web-nginx }
+> -        - name: site
+> -          configMap: { name: web-site }
+> -        - name: pages
+> -          configMap: { name: web-pages }
+>          - name: tmp
+>            emptyDir: {}
+>          - name: cache
+> diff --git a/deploy/k8s/base/web/kustomization.yaml b/deploy/k8s/base/web/kustomization.yaml
+> index a910fba..bce66b7 100644
+> --- a/deploy/k8s/base/web/kustomization.yaml
+> +++ b/deploy/k8s/base/web/kustomization.yaml
+> @@ -1,27 +1,9 @@
+>  apiVersion: kustomize.config.k8s.io/v1beta1
+>  kind: Kustomization
+> -# The apex site ryftapp.de: a static page and /.well-known/apple-app-site-association.
+> -# Namespace-neutral; services/web puts it into ryft-web.
+> +# The apex site ryftapp.de: one image from timkrebs/ryft-web (the static pages, the legal
+> +# texts, nginx's config and /.well-known/apple-app-site-association). Namespace-neutral;
+> +# services/web puts it into ryft-web.
+>  resources:
+>    - deployment.yaml
+>    - service.yaml
+>    - networkpolicy.yaml
+> -configMapGenerator:
+> -  # The hash suffix rolls the Deployment when the content changes.
+> -  - name: web-site
+> -    files:
+> -      - site/index.html
+> -      - apple-app-site-association=site/.well-known/apple-app-site-association
+> -  - name: web-pages
+> -    files:
+> -      - site/pages/privacy.en.html
+> -      - site/pages/privacy.de.html
+> -      - site/pages/terms.en.html
+> -      - site/pages/terms.de.html
+> -      - site/pages/support.en.html
+> -      - site/pages/support.de.html
+> -      - site/pages/impressum.en.html
+> -      - site/pages/impressum.de.html
+> -      - site/pages/open.html
+> -  - name: web-nginx
+> -    files: [default.conf]
+> diff --git a/deploy/k8s/overlays/eks/kustomization.yaml b/deploy/k8s/overlays/eks/kustomization.yaml
+> index 991ea73..e7bd1e1 100644
+> --- a/deploy/k8s/overlays/eks/kustomization.yaml
+> +++ b/deploy/k8s/overlays/eks/kustomization.yaml
+> @@ -52,5 +52,6 @@ images:
+>      newTag: "0fd4256"
+>    - name: ghcr.io/timkrebs/ryft/notify
+>      newTag: "0fd4256"
+> +  # web: the short SHA of a green main run in timkrebs/ryft-web, not of this repository.
+>    - name: ghcr.io/timkrebs/ryft/web
+> -    newTag: "1015bc7"
+> +    newTag: "f437747"
+> ```
+>
+> 2. `make k8s-validate` and `./scripts/check_registry.sh` (anonymous, as for the others:
+>    `ghcr.io/timkrebs/ryft/web:f437747` must answer ✓).
+> 3. PR, merge. Argo CD rolls `web` in wave 3 (the old pods serve until the new ones are
+>    ready).
+> 4. Check (all 200; the AASA `application/json` without a redirect; the CSP carries the
+>    site's script hashes, the ConfigMap site's had none):
+>
+> ```bash
+> kubectl -n ryft-web get pods -l app=web -o jsonpath='{.items[*].spec.containers[0].image}'; echo
+> for p in "" privacy terms support impressum de/privacy de/impressum privacy/2026-10-20 day/2026-10-19 auth/callback invite/TEST; do
+>   curl -s -o /dev/null -w "%{http_code} %{content_type} /$p\n" https://ryftapp.de/$p; done
+> curl -sI https://ryftapp.de/.well-known/apple-app-site-association | grep -iE "^HTTP|content-type|location"
+> curl -sI https://ryftapp.de/privacy | grep -i content-security-policy | grep -c "sha256-"   # 1
+> curl -sI https://www.ryftapp.de/ | grep -i location                 # https://ryftapp.de/
+> ```
+>
+> 5. Docs: OPERATIONS → "Apex site and apple-app-site-association": the site is the
+>    `ryft-web` image (legal texts, AASA and nginx config in `timkrebs/ryft-web`,
+>    `content/legal/`; the AASA also covers `/invite/*`); a change there is a PR in that
+>    repository plus a tag bump here. "A new policy text": `PRIVACY_POLICY_VERSION` in both
+>    ConfigMaps **and** `content/legal/{en,de}/privacy/<version>.mdx` in ryft-web.
+>    `overlays/eks/kustomization.yaml`'s comment "The packages are public" stays true.
+>
+> Later web releases: a one-line PR that moves web's `newTag` (item 3 below), until the
+> promote job from ryft-web (item 6) is switched on.
+>
+> ---
+>
+> **Only if the web package goes private again:** the rest of this section (a Vault-synced
+> pull secret, `docs/handoff/platform-web-image.patch`). Not needed for the quick switch.
+>
 > **Switch `ryft-web` from ConfigMaps to the image built in `timkrebs/ryft-web`, pulled with
 > a secret from Vault.** The site, its nginx config, the legal texts and the AASA now live in
 > that repository; the image is `ghcr.io/timkrebs/ryft/web:<short-sha>`, built and pushed by
